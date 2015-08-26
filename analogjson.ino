@@ -1,4 +1,4 @@
-//
+// 
 // Copyright (c) 2015 Neil Webber.
 //
 // See LICENSE file for licensing terms.
@@ -16,7 +16,6 @@
 // the code ugly. As this is mostly for example purposes, I've chosen to
 // leave them be. Everything fits within 2K still at the moment.
 //
-
 
 // ---------------------
 // Arbitrary Size Limits
