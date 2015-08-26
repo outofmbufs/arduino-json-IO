@@ -557,7 +557,7 @@ const char httpreply1[] = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n
 
 // basic unsuccessful reply
 const char reply400[] =
-    "HTTP/1.1 400 Bad Request\r\n\Connection: close\r\n\r\n";
+    "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n";
 
 
 // reading pins and producing JSON
