@@ -30,7 +30,7 @@ def print_response(response):
 #
 # Given those functions, now read and display pin:
 #
-read_one_pin(3)
+read_one_pin(1)
 
 # the same thing, reading multiple pins in a single request using POST
 #  Specify pinlist as an array, e.g., [ 1, 2, 3 ]
@@ -61,10 +61,34 @@ resp = requests.request('POST', url,
                         headers={'Content-Type' : 'application/json'},
                         data=JSONparams)
 
+# same thing but setting multiple pin modes in a single request
+params = { 'modes' : [ { 'pin' : 7, 'mode' : 'OUTPUT' },
+                       { 'pin' : 8, 'mode' : 'OUTPUT' } ] }
+JSONparams = json.dumps(params)
+
+resp = requests.request('POST', url, 
+                        headers={'Content-Type' : 'application/json'},
+                        data=JSONparams)
+
+
 # write a HIGH to that pin
 params = { 'writes' : { 'pin' : 7, 'value' : 'HIGH' } }
 JSONparams = json.dumps(params)
 url = server + '/v1/digitalWrite'
+resp = requests.request('POST', url, 
+                        headers={'Content-Type' : 'application/json'},
+                        data=JSONparams)
+
+
+# same thing but multiple writes in a single HTTP request
+# Please be aware it still takes multiple operations within
+# the arduino (i.e., the pins don't change "simultaneously" but
+# they will change very close in time to each other)
+
+params = { 'writes' : [ { 'pin' : 6, 'value' : 'LOW' },
+                        { 'pin' : 7, 'value' : 'HIGH' } ] }
+JSONparams = json.dumps(params)
+
 resp = requests.request('POST', url, 
                         headers={'Content-Type' : 'application/json'},
                         data=JSONparams)
