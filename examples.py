@@ -11,7 +11,7 @@ import json
 
 # CHANGE THIS to match your Arduino's IP addr
 
-server="http://192.168.62.118"
+server="http://192.168.99.99"
 
 # reading a single pin:
 def read_one_pin(pinnumber):
