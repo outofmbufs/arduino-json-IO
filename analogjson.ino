@@ -11,10 +11,10 @@
 
 // A NOTE ABOUT STRINGS
 //
-// There are many string literals in this example. They use up RAM.  They
-// could be moved into program memory and accessed via PROGMEM technique;
-// however, that makes the code a lot rougher on the eyes. This all
-// currently still fits as is so I have left the strings alone.
+// There are many string literals in here. They could (should?) be moved
+// into program memory and accessed via PROGMEM hacks. But that makes
+// the code ugly. As this is mostly for example purposes, I've chosen to
+// leave them be. Everything fits within 2K still at the moment.
 //
 
 
@@ -22,10 +22,15 @@
 // Arbitrary Size Limits
 // ---------------------
 //
-// Tradeoff between simplicity (e.g., not using malloc) and flexibility
+// There are many arbitrary limits compiled in here; you need to pick these
+// (modify them) according to your application requirements. For embedded
+// things I prefer the simplicity of this vs a full-on malloc attack.
+//
 // You need to set the REQUESTBUFFERSIZE to be large enough for the larger of:
 //      -- the biggest URL you are going to use
-//      -- the biggest JSON data you are going to exchange
+//      -- the biggest JSON data you are going to exchange. This is
+//         usually the bigger requirement; if you want to send multiple
+//         pins in a single request the syntax adds up fast.
 //
 // Similarly, you need to set the MAXJSMNTOKENS to be large enough so that
 // the JSMN parser can parse whatever JSON you send.
@@ -33,13 +38,8 @@
 // In both cases if something comes in that is too large it will just be
 // discarded and an error returned to the client.
 //
-// You have control over all of this based on your application.
-// If all you are doing is getting/setting one or two pins at a time
-// you won't need much space. If you are trying to allow for lots of pins
-// in a single HTTP transaction you will need more space, and of course
-// at some point the Arduino RAM limitations come into play.
-//
 // These default constants allow most requests to have a few pins specified.
+//
 
 #ifndef REQUESTBUFFERSIZE
 #define REQUESTBUFFERSIZE 200
@@ -48,13 +48,6 @@
 #ifndef MAXJSMNTOKENS
 #define MAXJSMNTOKENS 30
 #endif
-
-// this is the maximum number of pins permitted in
-// various multi-pin things. It's loosely related to tokens
-// though in fact the exact relationship isn't this simple
-
-#define MAXPINS (MAXJSMNTOKENS/2)  // maximum # of pins in a single request
-
 
 // The MAC address this Arduino will use
 //
@@ -122,12 +115,12 @@ elapsed_time(unsigned long t0)
 // from the tokenized output of JSMN.
 //
 
-// String compare: 
+// String compare:
 //   tp is a jsmn token pointing into (start/stop indices into) buf.
 //   Compare those characters against "k" with strcmp semantics.
-// 
-int 
-jsmn_strcmp(const jsmntok_t *tp, const char *k, const char *buf) 
+//
+int
+jsmn_strcmp(const jsmntok_t *tp, const char *k, const char *buf)
 {
     return strncmp(k, &buf[tp->start], tp->end - tp->start);
 }
@@ -189,14 +182,14 @@ jsmn_skiptok(const jsmntok_t *toks)
     int n;
 
     // for JSMN_PRIMITIVE or JSMN_STRING, by definition we're only
-    // skipping one token, so there's nothing else to do. 
+    // skipping one token, so there's nothing else to do.
     //
     // For the ARRAY or OBJECT containers, iterate through their contents
     // and recursively skip them.
 
     if (toks->type == JSMN_ARRAY) {
-	for (n = toks->size; n > 0; n--) 
-            nskipped += jsmn_skiptok(toks+nskipped); 
+	for (n = toks->size; n > 0; n--)
+            nskipped += jsmn_skiptok(toks+nskipped);
     } else if (toks->type == JSMN_OBJECT) {
         // Subtle: the key is always just one token (an object key cannot
         // be an array or another object). So we can skip that one with
@@ -229,7 +222,7 @@ jsmn_findkeyval(jsmntok_t *objtp, const char *buf, const char *k)
 
             if (jsmn_strcmp(tp, k, buf) == 0)
 		return nskipped+1;
-            else 
+            else
                 nskipped += 1 + jsmn_skiptok(tp+1);   // skip key and value
 	}
     }
@@ -287,7 +280,7 @@ skipwhite(EthernetClient &ec, unsigned long t0)
 // To protect against clients that connect and send nothing this bails
 // out after "too long". No "real" browser ever causes this but you can
 // test it by telnetting to port 80, entering at least one character and
-// then just waiting. 
+// then just waiting.
 //
 
 #define HTTPPARSE_TIMEOUT_SECONDS    20L
@@ -311,10 +304,8 @@ clientgetc(EthernetClient &ec, unsigned long t0)
 // buf must be n+1 long (NUL added, which may or may not make sense but
 // it is always added at the end nevertheless)
 int
-clientgetn(EthernetClient &ec, char *buf, int n)
+clientgetn(EthernetClient &ec, char *buf, int n, unsigned long t0)
 {
-    unsigned long t0 = millis();
-
     for ( ; n > 0 ; --n) {
         int i = clientgetc(ec, t0);
 
@@ -332,7 +323,8 @@ clientgetn(EthernetClient &ec, char *buf, int n)
 // ------------
 //
 // First a little request structure to hold results and context:
-//     client         -- the EthernetClient we are working with         
+//     client         -- the EthernetClient we are working with
+//     t0             -- start time; used for timeouts
 //     bufp           -- buffer to hold the resulting URL
 //     bufsiz         -- how big bufp is
 //     content_length -- if a Content-Length: header was given, the
@@ -445,7 +437,7 @@ parsefirstline(struct http_rq *rp)
         }
         if (p == rp->bufp+(rp->bufsiz-1))   // always leave room for '\0'
             return -1;            // hit end of buffer before end of URL
-        *p++ = c;                 // still have room; copy this char 
+        *p++ = c;                 // still have room; copy this char
     }
 
     // have the URL so now consume the HTTP/1.1 part. We don't check it.
@@ -456,7 +448,7 @@ parsefirstline(struct http_rq *rp)
 //
 // This is called whenever a header field starts with 'C', and if
 // the header field does in fact match Content-Length: then we
-// parse it and store the length value. 
+// parse it and store the length value.
 //
 // Note that header fields are cAse iNSensiTiVe
 //
@@ -536,7 +528,7 @@ parseHTTPheader(struct http_rq *rp)
     // we are only checking for one very specific header: Content-Length.
     // If that is encountered we'll fill in the rp->content_length field.
     // Everything else is just consumed/ignored.
-    
+
     int linelen = 0;    // will track as we go; a zero length line ends headers
     for(;;) {
         if ((i = clientgetc(rp->client, rp->t0)) == -1)
@@ -565,19 +557,33 @@ parseHTTPheader(struct http_rq *rp)
 const char httpreply1[] = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n";
 
 // basic unsuccessful reply
-const char reply400[] = 
+const char reply400[] =
     "HTTP/1.1 400 Bad Request\r\n\Connection: close\r\n\r\n";
 
 
-// Guts of actually reading pins and producing JSON results
+// reading pins and producing JSON
+//
+// This is the guts of analogRead and digitalRead, both for a single
+// pin (GET) or for multiple pins (POSTed request). The readerfunc
+// is either analogRead or digitalRead as appropriate. The jsmn token pointer
+// is pointing to the list (possibly just one) of json pin read "objects"
+//
+// Do the reads and send JSON that looks like
+//
+// { "pins" : [ { "pin" : nn, "value" : vv } ], ... }
+//
+// Note that there are other elements in this object (e.g., serverVersion)
+// so the client must JSON parse the returned object accordingly.
+//
+// The above general format is used even if there is just one pin to report.
+// The pin/value object is always inside an array inside "pins".
+//
 void
-processjsonreads(EthernetClient &ec, 
-                 jsmntok_t *tp, 
+processjsonreads(EthernetClient &ec,
+                 jsmntok_t *tp,
                  char *bufp,
                  int (*readerfunc)(uint8_t))
 {
-    int pins_to_read[MAXPINS];
-    int npins = 0;
     int n;
 
     if (tp->type == JSMN_STRING || tp->type == JSMN_PRIMITIVE) // just "3" etc
@@ -587,28 +593,30 @@ processjsonreads(EthernetClient &ec,
         tp++;    // skip to first contained object
     }
 
-    for ( ; n > 0; n--) {
-        if (tp->type == JSMN_STRING || tp->type == JSMN_PRIMITIVE) {
-            // ok to be destructive now
-            bufp[tp->end] = '\0';
-            pins_to_read[npins++] = atoi(&bufp[tp->start]);
-        }
-        tp += jsmn_skiptok(tp);
-    }
+    // blurt out the preamble...
     ec.print(httpreply1);
     ec.print("{\"serverVersion\":\"");
     ec.print(revision);
     ec.print("\",\"pins\":[");
-    for (int i = 0; i < npins; i++) {
-        if (i > 0)
-            ec.print(",");
-        ec.print("{\"pin\":");
-        ec.print(pins_to_read[i]);
-        ec.print(",\"value\":");
-        // We certainly could try to enforce some sanity on pinnum,
-        // but instead "you get whatever happens when you ask for it"
-        ec.print((* readerfunc)(pins_to_read[i]));
-        ec.print("}");
+
+    // walk through the JSON, reading and blurting more out as we go
+    int needcomma = 0;
+    for ( ; n > 0; n--) {
+        if (tp->type == JSMN_STRING || tp->type == JSMN_PRIMITIVE) {
+            int pin = jsmn_atoi(tp, bufp);
+
+            if (needcomma)
+                ec.print(",");
+            ec.print("{\"pin\":");
+            ec.print(pin);
+            ec.print(",\"value\":");
+            // We certainly could try to enforce some sanity on pinnum,
+            // but instead "you get whatever happens when you ask for it"
+            ec.print((* readerfunc)(pin));  // analogRead or digitalRead
+            ec.print("}");
+            needcomma = 1;
+        }
+        tp += jsmn_skiptok(tp);
     }
     ec.print("]}");
 }
@@ -623,21 +631,9 @@ processjsonreads(EthernetClient &ec,
 // the pin number, take it as gospel. No sanity is enforced, you get what
 // you ask for whether that makes sense or not.
 //
-// Return a JSON that looks like
-//
-// { "pins" : [ { "pin" : nn, "value" : vv } ], ... }
-//
-// Note that there are other elements in this object (e.g., serverVersion)
-// so the client must JSON parse the returned object accordingly.
-//
-// This may seem overly general but conforms to the format used for
-// the multiple pin read operations as well.
-//
 void
 do_one_read(struct http_rq *rp, struct urlfuncs *ufp, int (*rf)(uint8_t))
 {
-    int pinnum = atoi(&rp->bufp[strlen(ufp->url)]);
-
     // we just fake up a JSON request... a little hokey but here we go
     jsmntok_t token;
 
@@ -650,13 +646,13 @@ do_one_read(struct http_rq *rp, struct urlfuncs *ufp, int (*rf)(uint8_t))
 }
 
 void
-do_one_Aread(struct http_rq *rp, struct urlfuncs *ufp) 
+do_one_Aread(struct http_rq *rp, struct urlfuncs *ufp)
 {
     do_one_read(rp, ufp, analogRead);
 }
 
 void
-do_one_Dread(struct http_rq *rp, struct urlfuncs *ufp) 
+do_one_Dread(struct http_rq *rp, struct urlfuncs *ufp)
 {
     do_one_read(rp, ufp, digitalRead);
 }
@@ -686,15 +682,12 @@ do_json_reads(struct http_rq *rp, struct urlfuncs *ufp, int (*rf)(uint8_t))
     int i;
     int n;
     jsmn_parser parser;
-
-// given a maximum number of pins, how many tokens we need for you
-// to be able to "say" that many (with slop)
     jsmntok_t tokens[MAXJSMNTOKENS];
 
     // we're done with the URL itself so note that we're re-using
     // that buffer for the JSON in the POST now. Yay small footprints :)
     if (rp->content_length > rp->bufsiz-1 ||
-        clientgetn(rp->client, rp->bufp, rp->content_length) == -1) {
+        clientgetn(rp->client, rp->bufp, rp->content_length, rp->t0) == -1) {
 
         rp->client.print(reply400);
         return;
@@ -703,7 +696,7 @@ do_json_reads(struct http_rq *rp, struct urlfuncs *ufp, int (*rf)(uint8_t))
     jsmn_init(&parser);
     n = jsmn_parse(&parser, rp->bufp, strlen(rp->bufp), tokens, MAXJSMNTOKENS);
     i = ((n > 0) ? jsmn_findkeyval(tokens, rp->bufp, "pins") : -1);
-        
+
     if (i == -1) {
         // didn't find it
         rp->client.print(reply400);
@@ -715,13 +708,13 @@ do_json_reads(struct http_rq *rp, struct urlfuncs *ufp, int (*rf)(uint8_t))
 }
 
 void
-do_json_Areads(struct http_rq *rp, struct urlfuncs *ufp) 
+do_json_Areads(struct http_rq *rp, struct urlfuncs *ufp)
 {
     do_json_reads(rp, ufp, analogRead);
 }
 
 void
-do_json_Dreads(struct http_rq *rp, struct urlfuncs *ufp) 
+do_json_Dreads(struct http_rq *rp, struct urlfuncs *ufp)
 {
     do_json_reads(rp, ufp, digitalRead);
 }
@@ -732,7 +725,7 @@ do_json_Dreads(struct http_rq *rp, struct urlfuncs *ufp)
 // Response is a simple JSON object of various key/value items
 //
 void
-do_status(struct http_rq *rp, struct urlfuncs *ufp) 
+do_status(struct http_rq *rp, struct urlfuncs *ufp)
 {
     rp->client.print(httpreply1);
     rp->client.print("{\"serverVersion\":\"");
@@ -776,7 +769,7 @@ struct pinop_params {
 
 
 int
-pinops(struct pinop_params *parms) 
+pinops(struct pinop_params *parms)
 {
     int n;
     int i;
@@ -855,12 +848,12 @@ call_pinmode(int pin, int mode, struct pinop_params *ignored)
 // Return is just an empty 200 / OK
 //
 void
-do_pinmode(struct http_rq *rp, struct urlfuncs *ufp) 
+do_pinmode(struct http_rq *rp, struct urlfuncs *ufp)
 {
     // we're done with the URL itself so note that we're re-using
     // that buffer for the JSON in the POST now. Yay small footprints :)
     if (rp->content_length > rp->bufsiz-1 ||
-        clientgetn(rp->client, rp->bufp, rp->content_length) == -1) {
+        clientgetn(rp->client, rp->bufp, rp->content_length, rp->t0) == -1) {
         rp->client.print(reply400);
         return;
     }
@@ -903,12 +896,12 @@ call_digwrite(int pin, int val, struct pinop_params *ignored)
 
 
 void
-do_digitalwrite(struct http_rq *rp, struct urlfuncs *ufp) 
+do_digitalwrite(struct http_rq *rp, struct urlfuncs *ufp)
 {
     // we're done with the URL itself so note that we're re-using
     // that buffer for the JSON in the POST now. Yay small footprints :)
     if (rp->content_length > rp->bufsiz-1 ||
-        clientgetn(rp->client, rp->bufp, rp->content_length) == -1) {
+        clientgetn(rp->client, rp->bufp, rp->content_length, rp->t0) == -1) {
         rp->client.print(reply400);
         return;
     }
@@ -946,19 +939,27 @@ send_badrequest(struct http_rq *rp, struct urlfuncs *ufp)
 // POST /v1/analogRead
 //    Performs an analogRead on one or more pins specified via JSON
 //
+// GET /v1/digitalRead/NNNN
+//    Returns (as JSON) a digitalRead() of pin NNNN.
+//
+// POST /v1/digitalRead
+//    Performs a digitalRead on one or more pins specified via JSON
+//
+// POST /v1/digitalWrite
+//    Performs a digitalWrite on one or more pins specified via JSON
+//
 // POST /v1/configure/pinmode
 //    Configure pins via pinMode() from POSTed JSON info
 //
 // GET /v1/status
 //    Return miscellaneous debug/status info object
 //
-// 
 // Note that the trailing slash on some URLs is not an accident or
 // superfluous; that tells the dispatch matcher whether or not the
 // URL is a "complete" URL (nothing added at end) or whether there
 // will be extra operation-specific stuff (in the URL) after that point.
 //
-struct urlfuncs dt[] = 
+struct urlfuncs dt[] =
       { { "/v1/analogRead/", HTTPPARSE_GET, do_one_Aread },
         { "/v1/analogRead", HTTPPARSE_POST, do_json_Areads },
         { "/v1/digitalRead/", HTTPPARSE_GET, do_one_Dread },
@@ -975,7 +976,7 @@ struct urlfuncs dt[] =
 void
 webProcessing(EthernetClient& ec)
 {
-    // 
+    //
     //
     // As is often the case with a small embedded device, we aren't
     // necessarily fully parsing everything in a strictly conformant manner.
