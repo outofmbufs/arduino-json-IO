@@ -31,11 +31,10 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
     There is an arbitrary compiled-in limit on the number of pins you can read in one operation. 
 
-    When reading one or more pins, the server returns JSON that looks like this:
+    When reading one or more pins, the server returns JSON that looks like this: 
 
-```
-     { "pins" : [ { "pin" : nn, "value" : vv } ... ] }
-```
+    `{ "pins" : [ { "pin" : nn, "value" : vv } ... ] }`
+
     where the number of `{ "pin" : nn, "value" : vv }` elements in the array will correspond to the number of pin readings you requested (one for the simple GET form; possibly N for the JSON POST form of request).
 
 
@@ -46,9 +45,9 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 * **POST /v1/digitalWrite**
 
     Writes any number of pins (digitalWrite). You post JSON that looks like:
-```
-     { "writes" : [ { "pin" : nn, "value" : vv } ... ] }
-```
+
+    `{ "writes" : [ { "pin" : nn, "value" : vv } ... ] }`
+
     and the given values are written to the given pins. Values can be the literals `HIGH` or `LOW` (case SENSITIVE), or numbers. By repeating pin/value pairs inside the array you can write multiple pins with one HTTP transaction (they are, of course, still multiple API calls inside the Arduino).
 
     No data is returned (just HTTP 200 OK).
@@ -57,8 +56,7 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
     lets you call pinMode on a given pin. The POSTed data should look like:
 
-```
-     { "modes" : [ { "pin" : nn, "mode" : mm } ... ] }
+    `{ "modes" : [ { "pin" : nn, "mode" : mm } ... ] }`
 
     the mode values can be numbers or the literals INPUT, OUTPUT, or INPUT_PULLUP. Multiple pins can be configured in a single HTTP transaction. Be mindful of the overall size limits on JSON requests/responses.
 
@@ -71,25 +69,24 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
 Includes the JSMN JSON parser written by Serge A. Zaitsev. The files `jsmn.c` and `jsmn.h` were obtained from [http://zserge.com/jsmn.html](http://zserge.com/jsmn.html) with the license reproduced here:
 
-```
-Copyright (c) 2010 Serge A. Zaitsev
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-```
+>Copyright (c) 2010 Serge A. Zaitsev
+>
+>Permission is hereby granted, free of charge, to any person obtaining a copy
+>of this software and associated documentation files (the "Software"), to deal
+>in the Software without restriction, including without limitation the rights
+>to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+>copies of the Software, and to permit persons to whom the Software is
+>furnished to do so, subject to the following conditions:
+>
+>The above copyright notice and this permission notice shall be included in
+>all copies or substantial portions of the Software.
+>
+>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+>THE SOFTWARE.
+>
