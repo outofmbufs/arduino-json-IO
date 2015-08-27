@@ -29,9 +29,9 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
     Returns a JSON "pins" list as described below.
 
-    There is an arbitrary compiled-in limit on the number of pins you can read in one operation. 
+    There is an arbitrary compiled-in limit on the number of pins you can read in one operation.
 
-    When reading one or more pins, the server returns JSON that looks like this: 
+    When reading one or more pins, the server returns JSON that looks like this:
 
     `{ "pins" : [ { "pin" : nn, "value" : vv } ... ] }`
 
@@ -52,7 +52,7 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
     No data is returned (just HTTP 200 OK).
 
-* **POST /v1/configure/pinmode** 
+* **POST /v1/configure/pinmode**
 
     lets you call pinMode on a given pin. The POSTed data should look like:
 
@@ -64,6 +64,25 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
 * **GET /v1/status** Returns a JSON status object with various information.
 
+## Using a Browser
+
+As a bonus side-effect of having some simple GET APIs, you can surf your arduino with any browser to read a pin. If your arduino has IP address 192.168.99.99, then type this URL into a browser:
+
+    http://192.168.99.99/v1/analogRead/1
+
+and you'll see something like:
+
+    {"serverVersion":"20150826.1","pins":[{"pin":1,"value":392}]}
+
+which isn't pretty, but does tell you that pin 1 currently has value 392. Unfortunately there's no easy way to POST arbitrary data from a browser so you'll have to write code or use `curl` or something along those lines to write to your pins. But you can surf them from any browser at any time using this server.
+
+You can also get device status:
+
+    http://192.168.99.99/v1/status
+
+which will show something like:
+
+    {"serverVersion":"20150826.1","requestsProcessed":217,"uptime_msecs":54001313}
 
 ## Acknowledgements / Other Licensing
 

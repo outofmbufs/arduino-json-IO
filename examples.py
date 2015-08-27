@@ -13,85 +13,85 @@ import json
 
 server="http://192.168.99.99"
 
+# a whole bunch of simple routines demonstrating one way to access the APIs
+# These all use the global "server" variable and are really just meant
+# as demonstrations / explanation rather than as examples of good coding :)
+#
+
 # reading a single pin:
 def read_one_pin(pinnumber):
   url = server + '/v1/analogRead/' + str(pinnumber)
   response = requests.request('GET', url)
-  print_response(response)
+  for pv in response.json()['pins']:
+    if pv['pin'] == pinnumber:
+      return pv['value']
 
-# printing a response from the server
-def print_response(response):
-  if response.status_code == 200:          # HTTP OK
-    python_dictionary = response.json()
-    print(python_dictionary)
-  else:
-    print("Server returned error")
+# reading multiple pins ... pinlist should be [ p1, p2, ... ]
+#
+def read_npins(pinlist):
+  url = server + '/v1/analogRead'
+  params = { "pins" : pinlist }
+  JSONparams = json.dumps(params)
+  JSONhdr = { 'Content-Type' : 'application/json' }
+  response = requests.request('POST', url, headers=JSONhdr, data=JSONparams)
+  # just return the results list
+  return response.json()['pins']
+
+# writing a single pin
+def write_one_pin(pinnumber, what):
+  url = server + '/v1/digitalWrite'
+  params = { 'writes' : { 'pin' : pinnumber, 'value' : what } }
+  JSONparams = json.dumps(params)
+  JSONhdr = { 'Content-Type' : 'application/json' }
+  resp = requests.request('POST', url, headers=JSONhdr, data=JSONparams)
+
+# writing multiple pins ...
+# pinsvals should be an array of tuples:
+#     [ (p, v), (p, v), ... ]
+# where each p is a pin number and each v is a value to be written
+#
+# Values can be 'HIGH' or 'LOW' (case matters!) or a number
+#
+def write_npins(pinsvals):
+  url = server + '/v1/digitalWrite'
+  params = { 'writes' : [ {'pin' : p, 'value' : v} for p,v in pinsvals ] }
+  JSONparams = json.dumps(params)
+  JSONhdr = { 'Content-Type' : 'application/json' }
+  resp = requests.request('POST', url, headers=JSONhdr, data=JSONparams)
+
+# configure a particular pin as an output
+def pin_output_mode(pin):
+  url = server + '/v1/configure/pinmode'
+  params = { 'modes' : { 'pin' : pin, 'mode' : 'OUTPUT' } }
+  JSONparams = json.dumps(params)
+  JSONhdr = { 'Content-Type' : 'application/json' }
+  resp = requests.request('POST', url, headers=JSONhdr, data=JSONparams)
+
+def requests_processed():
+  url = server + '/v1/status'
+  response = requests.request('GET', url)
+  return response.json()['requestsProcessed']
+
+def server_uptime():
+  url = server + '/v1/status'
+  response = requests.request('GET', url)
+  return response.json()['uptime_msecs']//1000
 
 #
 # Given those functions, now read and display pin:
 #
-read_one_pin(1)
+print("Pin 1 is {}".format(read_one_pin(1)))
 
-# the same thing, reading multiple pins in a single request using POST
-#  Specify pinlist as an array, e.g., [ 1, 2, 3 ]
-def read_multiple_pins(pinlist):
-  url = server + '/v1/analogRead'
-  # some extra steps - need to encode the parameters accordingly:
-  params = { "pins" : pinlist }
-  JSONparams = json.dumps(params)
+# read/display multiple pins:
+for pv in read_npins([1, 2, 3]):
+    print("Pin {} is {}".format(pv['pin'],pv['value']))
 
-  # this header is not actually required by the Arduino, but you get
-  # the good housekeeping seal of approval if you send it, since we ARE
-  # sending json we should declare it as such in the request
-  JSONhdr = { 'Content-Type' : 'application/json' }
-
-  response = requests.request('POST', url, headers=JSONhdr, data=JSONparams)
-  print_response(response)
-
-
-# try the multiple pin thing
-read_multiple_pins([ 1, 2, 3 ])
-
-# setting a pin to output mode
-url = server + '/v1/configure/pinmode'
-params = { 'modes' : { 'pin' : 7, 'mode' : 'OUTPUT' } }
-JSONparams = json.dumps(params)
-
-resp = requests.request('POST', url, 
-                        headers={'Content-Type' : 'application/json'},
-                        data=JSONparams)
-
-# same thing but setting multiple pin modes in a single request
-params = { 'modes' : [ { 'pin' : 7, 'mode' : 'OUTPUT' },
-                       { 'pin' : 8, 'mode' : 'OUTPUT' } ] }
-JSONparams = json.dumps(params)
-
-resp = requests.request('POST', url, 
-                        headers={'Content-Type' : 'application/json'},
-                        data=JSONparams)
-
-
-# write a HIGH to that pin
-params = { 'writes' : { 'pin' : 7, 'value' : 'HIGH' } }
-JSONparams = json.dumps(params)
-url = server + '/v1/digitalWrite'
-resp = requests.request('POST', url, 
-                        headers={'Content-Type' : 'application/json'},
-                        data=JSONparams)
-
-
-# same thing but multiple writes in a single HTTP request
-# Please be aware it still takes multiple operations within
-# the arduino (i.e., the pins don't change "simultaneously" but
-# they will change very close in time to each other)
-
-params = { 'writes' : [ { 'pin' : 6, 'value' : 'LOW' },
-                        { 'pin' : 7, 'value' : 'HIGH' } ] }
-JSONparams = json.dumps(params)
-
-resp = requests.request('POST', url, 
-                        headers={'Content-Type' : 'application/json'},
-                        data=JSONparams)
+# do some configuration and writes...
+pin_output_mode(5)
+pin_output_mode(6)
+write_npins([ (5, 'HIGH'), (6, 'HIGH') ])
+write_one_pin(6, 'LOW')
+print("Served {} requests".format(requests_processed()))
 
 # that's the essence of it ... have fun!
 
