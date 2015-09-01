@@ -7,7 +7,7 @@ The idea behind this is you can access the full functionality of the analogRead/
 Licensed under the MIT license for maximum flexibility; see the LICENSE file for details.
 
 ## Development Status
-I ran over 4 million test calls in a loop to an Arduino running this code; the test ran for roughly 5 days without any problems. The code should be considered as released and stable at this point.
+I ran test calls in a loop to an Arduino running this code; over a period of roughly 5 days more than 4 million API calls have been executed without any problems (and the test is still running strong). The code should be considered as released and stable at this point.
 
 
 ## APIs implemented
