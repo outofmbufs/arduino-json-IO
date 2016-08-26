@@ -1,8 +1,16 @@
 // 
-// Copyright (c) 2015 Neil Webber.
+// Copyright (c) 2015, 2016 Neil Webber.
 //
 // See LICENSE file for licensing terms.
 //
+
+// oddly, without this at the top of the file, function definitions split
+// across lines after the type don't work. Some arduino environment bug.
+// The FIRST function encountered must have the type and the function name
+// on ONE line. Others after can be split. Very odd ... didn't chase down.
+// August 2016 toolchain 1.6.11 on Mac
+void FIRST_FUNCTION_BUG() {}
+
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -104,6 +112,7 @@ elapsed_time(unsigned long t0)
         return tmp + 1; // the rest of the 0x100000000 we needed to add
     }
 }
+
 
 // ---------------
 //  JSMN helpers
@@ -233,44 +242,6 @@ jsmn_findkeyval(jsmntok_t *objtp, const char *buf, const char *k)
 // -----------------------
 
 
-// eatline - consume characters until LF
-//
-// Strictly speaking we should be looking for CRLF but
-// this works for all properly formatted requests
-//
-// Returns -1 if there was a problem (timeout, connection lost, etc)
-//
-
-int
-eatline(EthernetClient &ec, unsigned long t0)
-{
-    for(;;) {
-        int i;
-
-        if ((i = clientgetc(ec, t0)) == -1)
-            return -1;
-        if (i == '\n')
-            return 0;
-     }
-}
-
-// skipwhite - consume white space characters
-//
-// Returns the first non-space character or -1 for timeouts/disconnect/etc
-
-int
-skipwhite(EthernetClient &ec, unsigned long t0)
-{
-    for(;;) {
-        int i;
-
-        if ((i = clientgetc(ec, t0)) == -1)
-            return -1;
-        if (! isspace((char)i))
-            return i;
-     }
-}
-
 // get a character
 //
 // Get a character from the client, with timeout and disconnect checks.
@@ -317,6 +288,47 @@ clientgetn(EthernetClient &ec, char *buf, int n, unsigned long t0)
     return 0;
 }
 
+
+// eatline - consume characters until LF
+//
+// Strictly speaking we should be looking for CRLF but
+// this works for all properly formatted requests
+//
+// Returns -1 if there was a problem (timeout, connection lost, etc)
+//
+
+int
+eatline(EthernetClient &ec, unsigned long t0)
+{
+    for(;;) {
+        int i;
+
+        if ((i = clientgetc(ec, t0)) == -1)
+            return -1;
+        if (i == '\n')
+            return 0;
+     }
+}
+
+// skipwhite - consume white space characters
+//
+// Returns the first non-space character or -1 for timeouts/disconnect/etc
+
+int
+skipwhite(EthernetClient &ec, unsigned long t0)
+{
+    for(;;) {
+        int i;
+
+        if ((i = clientgetc(ec, t0)) == -1)
+            return -1;
+        if (! isspace((char)i))
+            return i;
+     }
+}
+
+
+
 // ------------
 // HTTP Parsing
 // ------------
@@ -353,7 +365,7 @@ struct http_rq {
 //
 
 struct urlfuncs {
-    char *url;
+    char const *url;
     int whatop;
     void (* f)(struct http_rq *, struct urlfuncs *);
 };
@@ -383,7 +395,7 @@ struct urlfuncs {
 int
 parsefirstline(struct http_rq *rp)
 {
-    char *p = NULL;
+    char const *qq;
     char c;
     int i;
 
@@ -396,20 +408,20 @@ parsefirstline(struct http_rq *rp)
     c = (char)i;
     if (c == 'G') {
         rp->operation = HTTPPARSE_GET;
-        p = "ET";
+        qq = "ET";
     } else if (c == 'P') {
         // if PUT becomes an option, add more logic here; for now...
         rp->operation = HTTPPARSE_POST;
-        p = "OST";
+        qq = "OST";
     } else
         return -1;
 
     // at this point we are looking for the rest of GET/POST (or disconnected)
-    while (*p != '\0') {
+    while (*qq != '\0') {
         if ((i = clientgetc(rp->client, rp->t0)) == -1)
             return -1;
         c = (char)i;
-        if (c != *p++)        // i.e., not matching expected GET or POST
+        if (c != *qq++)        // i.e., not matching expected GET or POST
             return -1;
     }
 
@@ -424,7 +436,7 @@ parsefirstline(struct http_rq *rp)
     // causes the request to be discarded. Choose your compile-time
     // constants/sizes according to your application requirements.
 
-    p = rp->bufp;
+    char *p = rp->bufp;
 
     for(;;) {   // go until hit ' ' or timeout or buffer limit
         if ((i = clientgetc(rp->client, rp->t0)) == -1)
@@ -746,7 +758,7 @@ do_status(struct http_rq *rp, struct urlfuncs *ufp)
 //        or   { "modes" : [ { "pin" : pp, "mode" : mm }, ... ] }
 //
 // But the digitalWrite API uses the same general outline, except
-// that instead of "pinmode" it says "digitalwrite" and instead of
+// that instead of "modes" it says "writes" and instead of
 // "mode" it says "value", and the list of allowed substitutions
 // (e.g., HIGH/LOW) is different. And, of course, the function to
 // be called is different.
@@ -758,12 +770,12 @@ do_status(struct http_rq *rp, struct urlfuncs *ufp)
 //
 
 struct pinop_params {
-    char *topobj;           // e.g., "modes"
+    char const *topobj;           // e.g., "modes"
     void (* callback)(int, int, struct pinop_params *);
     void *callback_data;
     char *tokbuf;
-    char *key1;              // e.g., "pin"
-    char *key2;              // e.g., "mode" or "value"
+    char const *key1;              // e.g., "pin"
+    char const *key2;              // e.g., "mode" or "value"
 };
 
 
