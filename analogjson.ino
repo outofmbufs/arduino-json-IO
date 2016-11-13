@@ -1088,13 +1088,14 @@ int irjson(char *bufp)
                         // self evident how to add more. Note that some of
                         // the protocols have other fields and you will need to
                         // add more JSON (and parsing) for those
-                        // XXX requests falling through here are ignored silently
+                        // XXX requests falling through here ignored silently
                     }
                 }
-            if (delay_usec < 10000)
-                delayMicroseconds((int)delay_usec);
-            else
-                delay(delay_usec/1000);
+                if (delay_usec < 10000) {
+                    if (delay_usec > 0)
+                        delayMicroseconds((int)delay_usec);
+                } else
+                    delay(delay_usec/1000);
                 tp += jsmn_skiptok(tp);
             }
         }
