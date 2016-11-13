@@ -6,9 +6,12 @@ The idea behind this is you can access the full functionality of the analogRead/
 
 Licensed under the MIT license for maximum flexibility; see the LICENSE file for details.
 
-## Development Status
-I ran test calls in a loop to an Arduino running this code; over a period of roughly 5 days more than 4 million API calls have been executed without any problems (and the test is still running strong). The code should be considered as released and stable at this point.
+## Infrared Remote Support
 
+The code has been extended to include abilit to send IR codes using the IRRemote library. You can conditionally build the program with just the IR support, just the analog/digital I/O support, or both. You may instead wish to take this code as an example or starting point and fully customize it for your own application as well.
+
+## Development Status
+I have tested most of the code but have not written or executed exhaustive tests of every feature. I'm using this code in my own projects and find it useful; your mileage may vary!
 
 ## APIs implemented
 
@@ -63,7 +66,9 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
     the mode values can be numbers or the literals INPUT, OUTPUT, or INPUT_PULLUP. Multiple pins can be configured in a single HTTP transaction. Be mindful of the overall size limits on JSON requests/responses.
 
-    No data is returned (just HTTP 200 OK).
+    As a special case the mode can be BUSY. Setting a pin to BUSY causes it to be configured as an OUTPUT and driven HIGH during request processing and LOW otherwise.
+
+    A successful configuration request returns HTTP 200 OK.
 
 * **GET /v1/status** Returns a JSON status object with various information.
 
