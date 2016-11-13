@@ -8,7 +8,7 @@ Licensed under the MIT license for maximum flexibility; see the LICENSE file for
 
 ## Infrared Remote Support
 
-The code has been extended to include abilit to send IR codes using the IRRemote library. You can conditionally build the program with just the IR support, just the analog/digital I/O support, or both. You may instead wish to take this code as an example or starting point and fully customize it for your own application as well.
+The code has been extended with the ability to send IR codes using the IRRemote library. You can conditionally build the program with just the IR support, just the analog/digital I/O support, or both. You may instead wish to take this code as an example or starting point and fully customize it for your own application as well.
 
 ## Development Status
 I have tested most of the code but have not written or executed exhaustive tests of every feature. I'm using this code in my own projects and find it useful; your mileage may vary!
@@ -66,11 +66,37 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
     the mode values can be numbers or the literals INPUT, OUTPUT, or INPUT_PULLUP. Multiple pins can be configured in a single HTTP transaction. Be mindful of the overall size limits on JSON requests/responses.
 
-    As a special case the mode can be BUSY. Setting a pin to BUSY causes it to be configured as an OUTPUT and driven HIGH during request processing and LOW otherwise.
+    A pin can also be set to BUSY mode. Setting a pin to BUSY configures it as an OUTPUT that will be driven HIGH during request processing and LOW otherwise. This is mostly useful with IRSend as a way to see activity that might not otherwise be apparent (assuming you hook something up to the BUSY pin of course).
 
     A successful configuration request returns HTTP 200 OK.
 
 * **GET /v1/status** Returns a JSON status object with various information.
+
+* **POST /v1/sendIR
+
+    Sends an arbitrary IR code on the default output pin (usually pin 3) of the IRSend library. The POSTed data should look like:
+
+    `{ "codes" : {code-dict} }`
+
+    or
+
+    `{ "codes" : [ {code-dict} ... ] }`
+
+    and can optionally include a repeat element:
+
+    `{ "codes" : {code-dict}, "repeat": 4 }`
+    `{ "codes" : [ {code-dict} ... ], "repeat": 4 }`
+
+
+    Each code-dict looks something like:
+
+     `{ "code": 16712445, "bits": 32, "protocol": "NEC", "delay": 250000 }
+
+    where the "code", "bits", and "protocol" are determined by what type of IR code you want to send and are passed accordingly to the IRSend library. The "delay" element sets the amount of time, in microseconds, the server will sleep after sending the code. This is useful for separating consecutive POST operations according to whatever device-specific timing requirements there may be. The default "delay" is 150000 (150 milliseconds). You can set delay zero if you want no delay at all but be aware that devices may get confused by codes sent too quickly back-to-back.
+
+    If you send multiple code-dicts in a single request, the "bits", "protocol" and "delay" elements will default to whatever value was found in any previous code-dict IN THIS SAME POST REQUEST. This is helpful for reducing the POST size when sending multiple codes all using the same protocol (e.g., NEC/32) and delay parameters.
+
+    Finally, the "repeat" element at the top level will cause the server to loop over the entire POST request that many times. So, for example, if you have a code that increases brightness and you want the brightness up to the max and you know that sending the code eight times is always enough to get to the max you can specify the brightness IR code once and use `"repeat": 8` to send it 8 times (you may need to specify an appropriate delay in the code-dict for this to work properly). Be careful with this; obviously very long repeat cycles will make the Arduino web server unresponsive for the duration of all the sends.
 
 ## Using a Browser
 
