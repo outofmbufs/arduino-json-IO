@@ -72,7 +72,7 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
 * **GET /v1/status** Returns a JSON status object with various information.
 
-* **POST /v1/sendIR
+* **POST /v1/sendIR**
 
     Sends an arbitrary IR code on the default output pin (usually pin 3) of the IRSend library. The POSTed data should look like:
 
@@ -80,17 +80,18 @@ All endpoints start with /v1 to indicate version number (1) of this protocol.
 
     or
 
-    `{ "codes" : [ {code-dict} ... ] }`
+    `{ "codes" : [ {code-dict1}, {code-dict2}, ... ] }`
 
     and can optionally include a repeat element:
 
     `{ "codes" : {code-dict}, "repeat": 4 }`
-    `{ "codes" : [ {code-dict} ... ], "repeat": 4 }`
+
+    `{ "codes" : [ ... ], "repeat": 4 }`
 
 
     Each code-dict looks something like:
 
-     `{ "code": 16712445, "bits": 32, "protocol": "NEC", "delay": 250000 }
+    `{ "code": 16712445, "bits": 32, "protocol": "NEC", "delay": 250000 }`
 
     where the "code", "bits", and "protocol" are determined by what type of IR code you want to send and are passed accordingly to the IRSend library. The "delay" element sets the amount of time, in microseconds, the server will sleep after sending the code. This is useful for separating consecutive POST operations according to whatever device-specific timing requirements there may be. The default "delay" is 150000 (150 milliseconds). You can set delay zero if you want no delay at all but be aware that devices may get confused by codes sent too quickly back-to-back.
 
