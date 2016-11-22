@@ -74,7 +74,7 @@ EthernetServer server(80);
 
 // version string
 // since this is always served in JSON dictionary form, that's included here
-const char revision_json[] PROGMEM = "\"serverVersion\": \"20161104.1\"";
+const char revision_json[] PROGMEM = "\"serverVersion\": \"20161121.1\"";
 
 // this counter is for statistics; reported via status API
 unsigned long requests_processed = 0;
