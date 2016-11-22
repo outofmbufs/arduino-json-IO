@@ -17,7 +17,7 @@
 #define DIGITAL_IO 1        // comment out to delete raw digital I/O
 #define IR_SEND 1           // comment out to delete IR sendings
 
-#if defined(IR_SEND) || defined(IR_RECV)
+#if defined(IR_SEND)
 #include "IRremote.h"
 #ifdef IR_SEND
 IRsend irsend;
@@ -1165,7 +1165,6 @@ const char P_digRead[] PROGMEM = "/v1/digitalRead";
 const char P_digWrite[] PROGMEM = "/v1/digitalWrite";
 const char P_confpin[] PROGMEM = "/v1/configure/pinmode";
 const char P_sendIR[] PROGMEM = "/v1/sendIR";
-const char P_recvIR[] PROGMEM = "/v1/recvIR";
 const char P_status[] PROGMEM = "/v1/status";
 
 #define TRAILING_OK 1
@@ -1180,9 +1179,6 @@ struct urlfuncs dt[] = {
 #endif // DIGITAL_IO
 #ifdef IR_SEND
         { P_sendIR,   HTTPPARSE_POST, NO_TRAILING, do_json_send_ir },
-#endif
-#ifdef IR_RECV
-        { P_recvIR,   HTTPPARSE_GET,  NO_TRAILING, do_json_read_ir },
 #endif
         { P_status,   HTTPPARSE_GET,  NO_TRAILING, do_status },
         { P_confpin,  HTTPPARSE_POST, NO_TRAILING, do_pinmode },
